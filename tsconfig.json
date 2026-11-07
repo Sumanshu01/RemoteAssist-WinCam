@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/shared-types" },
+    { "path": "./services/signaling-server" },
+    { "path": "./apps/web-dashboard" },
+    { "path": "./apps/sender-client" },
+    { "path": "./tests" }
+  ]
+}

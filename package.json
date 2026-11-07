@@ -1,0 +1,51 @@
+{
+  "name": "remoteassist-wincam",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RemoteAssist WinCam: Consent-based cross-border remote video communication and application-support system",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*",
+    "tests"
+  ],
+  "scripts": {
+    "dev:dashboard": "npm run dev --workspace=@remoteassist/web-dashboard",
+    "dev:sender": "npm run dev --workspace=@remoteassist/sender-client",
+    "dev:server": "npm run dev --workspace=@remoteassist/signaling-server",
+    "build": "npm run build --workspaces --if-present",
+    "build:types": "npm run build --workspace=@remoteassist/shared-types",
+    "build:server": "npm run build --workspace=@remoteassist/signaling-server",
+    "build:dashboard": "npm run build --workspace=@remoteassist/web-dashboard",
+    "build:sender": "npm run build --workspace=@remoteassist/sender-client",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
+    "typecheck": "tsc -b"
+  },
+  "keywords": [
+    "webrtc",
+    "remote-assist",
+    "windows-11",
+    "signaling",
+    "consent-based",
+    "telehealth",
+    "support"
+  ],
+  "author": "RemoteAssist WinCam Team",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/node": "^22.10.1",
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.16.0",
+    "vitest": "^2.1.8"
+  }
+}

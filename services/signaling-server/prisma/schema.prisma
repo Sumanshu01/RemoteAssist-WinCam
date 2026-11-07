@@ -1,0 +1,195 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum AppRole {
+  ADMIN
+  HELPER
+  APPLICANT
+}
+
+enum WorkflowStatus {
+  DRAFT
+  IN_PROGRESS
+  REVIEW_PENDING
+  COMPLETED
+}
+
+enum SessionStatus {
+  PENDING_CONSENT
+  ACTIVE
+  COMPLETED
+  TERMINATED
+  EXPIRED
+}
+
+enum ConsentStatus {
+  NONE
+  REQUESTED
+  GRANTED
+  DENIED
+  REVOKED
+}
+
+model User {
+  id                String                 @id @default(uuid())
+  email             String                 @unique
+  passwordHash      String
+  name              String
+  role              AppRole                @default(APPLICANT)
+  countryCode       String                 @default("IN")
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  applicantProfile  ApplicantProfile?
+  workflows         ApplicationWorkflow[]
+  createdInvitations SupportInvitation[]   @relation("HelperInvitations")
+  helperSessions    SupportSession[]       @relation("HelperSessions")
+  applicantSessions SupportSession[]       @relation("ApplicantSessions")
+  messages          SupportMessage[]
+  refreshSessions   RefreshSession[]
+  consents          ConsentRecord[]
+}
+
+model ApplicantProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetCountry  String   @default("CA")
+  targetJobTitle String?
+  visaStream     String?
+  phone          String?
+  resumeNotes    String?
+  currentStep    Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ApplicationWorkflow {
+  id          String                  @id @default(uuid())
+  applicantId String
+  applicant   User                    @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  version     Int                     @default(1) // For optimistic concurrency checks
+  status      WorkflowStatus          @default(DRAFT)
+  dataJson    String                  @default("{}")
+  disclaimer  String                  @default("Local application assistance draft saved. Not submitted to external hiring website.")
+  lastSavedAt DateTime                @default(now())
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  checklists  WorkflowChecklistItem[]
+}
+
+model WorkflowChecklistItem {
+  id          String              @id @default(uuid())
+  workflowId  String
+  workflow    ApplicationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  label       String
+  isCompleted Boolean             @default(false)
+  sortOrder   Int                 @default(0)
+  completedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model SupportInvitation {
+  id             String           @id @default(uuid())
+  token          String           @unique
+  code           String           @unique
+  helperId       String
+  helper         User             @relation("HelperInvitations", fields: [helperId], references: [id], onDelete: Cascade)
+  applicantEmail String
+  targetCountry  String           @default("CA")
+  expiresAt      DateTime
+  isUsed         Boolean          @default(false)
+  usedAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  sessions       SupportSession[]
+}
+
+model SupportSession {
+  id                String            @id @default(uuid())
+  sessionCode       String            @unique
+  invitationId      String?
+  invitation        SupportInvitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  helperId          String
+  helper            User              @relation("HelperSessions", fields: [helperId], references: [id], onDelete: Cascade)
+  applicantId       String
+  applicant         User              @relation("ApplicantSessions", fields: [applicantId], references: [id], onDelete: Cascade)
+  status            SessionStatus     @default(PENDING_CONSENT)
+  consentGrantedAt  DateTime?
+  terminatedAt      DateTime?
+  terminationReason String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  messages          SupportMessage[]
+  consents          ConsentRecord[]
+  auditEvents       AuditEvent[]
+}
+
+model SupportMessage {
+  id        String         @id @default(uuid())
+  sessionId String
+  session   SupportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderRole AppRole
+  content   String
+  timestamp DateTime       @default(now())
+  createdAt DateTime       @default(now())
+}
+
+model AuditEvent {
+  id           String          @id @default(uuid())
+  sessionId    String?
+  session      SupportSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  eventType    String
+  actorId      String
+  actorRole    String
+  targetEntity String
+  targetId     String?
+  detailsJson  String?
+  ipHash       String?
+  userAgent    String?
+  createdAt    DateTime        @default(now())
+}
+
+model RefreshSession {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  userAgent String?
+  ipHash    String?
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ConsentRecord {
+  id                        String         @id @default(uuid())
+  sessionId                 String
+  session                   SupportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId                    String
+  user                      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role                      AppRole        @default(APPLICANT)
+  status                    ConsentStatus  @default(NONE)
+  allowCamera               Boolean        @default(false)
+  allowMicrophone           Boolean        @default(false)
+  allowVisualAssistance     Boolean        @default(false)
+  acknowledgeSecurityPolicy Boolean        @default(false)
+  grantedAt                 DateTime?
+  revokedAt                 DateTime?
+  ipHash                    String?
+  userAgent                 String?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+}

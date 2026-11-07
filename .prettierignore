@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+coverage
+.vite
+.env
+.env.local
+*.log
+native/build
+native/windows-receiver/build
+native/virtual-camera-research/build
